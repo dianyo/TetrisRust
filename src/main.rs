@@ -162,15 +162,45 @@ async fn main() {
                 }
                 if is_key_pressed(KeyCode::Up) {
                     if potential_piece.shape_index == 0 { // O piece
-                        // Do not rotate
+                         // Do not rotate
                     } else {
                         let mut rotated_piece = potential_piece;
+                        let prev_rotation = rotated_piece.rotation;
                         rotated_piece.rotation = (rotated_piece.rotation + 1) % 4;
-                        
+
+                        let wall_kicks = if rotated_piece.shape_index == 1 {
+                            // I piece
+                            match (prev_rotation, rotated_piece.rotation) {
+                                (0, 1) => &[(0, 0), (-2, 0), (1, 0), (-2, 1), (1, -2)],
+                                (1, 0) => &[(0, 0), (2, 0), (-1, 0), (2, -1), (-1, 2)],
+                                (1, 2) => &[(0, 0), (-1, 0), (2, 0), (-1, -2), (2, 1)],
+                                (2, 1) => &[(0, 0), (1, 0), (-2, 0), (1, 2), (-2, -1)],
+                                (2, 3) => &[(0, 0), (2, 0), (-1, 0), (2, -1), (-1, 2)],
+                                (3, 2) => &[(0, 0), (-2, 0), (1, 0), (-2, 1), (1, -2)],
+                                (3, 0) => &[(0, 0), (1, 0), (-2, 0), (1, 2), (-2, -1)],
+                                (0, 3) => &[(0, 0), (-1, 0), (2, 0), (-1, -2), (2, 1)],
+                                _ => &[(0, 0); 5],
+                            }
+                        } else {
+                            // Other pieces
+                            match (prev_rotation, rotated_piece.rotation) {
+                                (0, 1) => &[(0, 0), (-1, 0), (-1, 1), (0, -2), (-1, -2)],
+                                (1, 0) => &[(0, 0), (1, 0), (1, -1), (0, 2), (1, 2)],
+                                (1, 2) => &[(0, 0), (1, 0), (1, -1), (0, 2), (1, 2)],
+                                (2, 1) => &[(0, 0), (-1, 0), (-1, 1), (0, -2), (-1, -2)],
+                                (2, 3) => &[(0, 0), (1, 0), (1, 1), (0, -2), (1, -2)],
+                                (3, 2) => &[(0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)],
+                                (3, 0) => &[(0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)],
+                                (0, 3) => &[(0, 0), (1, 0), (1, 1), (0, -2), (1, -2)],
+                                _ => &[(0, 0); 5],
+                            }
+                        };
+
                         let mut moved = false;
-                        for &dx in &[0, 1, -1, 2, -2] {
+                        for &(dx, dy) in wall_kicks {
                             let mut test_piece = rotated_piece;
                             test_piece.x += dx;
+                            test_piece.y += dy;
                             if !test_piece.check_collision(&board) {
                                 potential_piece = test_piece;
                                 moved = true;
