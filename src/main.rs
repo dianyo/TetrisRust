@@ -38,7 +38,11 @@ impl Piece {
         for (x, y) in self.rotated_shape() {
             let x = self.x + x;
             let y = self.y + y;
-            if x < 0 || x >= BOARD_WIDTH as i8 || y >= BOARD_HEIGHT as i8 || (y >= 0 && board[y as usize][x as usize] == 1) {
+            if x < 0
+                || x >= BOARD_WIDTH as i8
+                || y >= BOARD_HEIGHT as i8
+                || (y >= 0 && board[y as usize][x as usize] == 1)
+            {
                 return true;
             }
         }
@@ -59,9 +63,9 @@ impl Piece {
     }
 }
 
-fn clear_lines(board: &mut Board) {
+fn clear_lines(board: &mut Board) -> u8 {
     let mut y = BOARD_HEIGHT - 1;
-    let mut _lines_cleared = 0;
+    let mut lines_cleared = 0;
 
     while y > 0 {
         let mut full = true;
@@ -73,7 +77,7 @@ fn clear_lines(board: &mut Board) {
         }
 
         if full {
-            _lines_cleared += 1;
+            lines_cleared += 1;
             for y2 in (1..=y).rev() {
                 for x in 0..BOARD_WIDTH {
                     board[y2][x] = board[y2 - 1][x];
@@ -86,6 +90,7 @@ fn clear_lines(board: &mut Board) {
             y -= 1;
         }
     }
+    lines_cleared
 }
 
 #[macroquad::main("Tetris")]
@@ -93,40 +98,49 @@ async fn main() {
     let mut board: Board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
     let mut current_piece = Piece::new();
     let mut last_update = get_time();
+    let mut score = 0;
+    let mut game_over = false;
 
     loop {
-        let mut potential_piece = current_piece;
-        if is_key_pressed(KeyCode::Left) {
-            potential_piece.x -= 1;
-        }
-        if is_key_pressed(KeyCode::Right) {
-            potential_piece.x += 1;
-        }
-        if is_key_pressed(KeyCode::Up) {
-            potential_piece.rotation = (potential_piece.rotation + 1) % 4;
-        }
-
-        if !potential_piece.check_collision(&board) {
-            current_piece = potential_piece;
-        }
-
-        if get_time() - last_update > 0.5 {
+        if !game_over {
             let mut potential_piece = current_piece;
-            potential_piece.y += 1;
-            if potential_piece.check_collision(&board) {
-                for (x, y) in current_piece.rotated_shape() {
-                    let x = current_piece.x + x;
-                    let y = current_piece.y + y;
-                    if y >= 0 {
-                        board[y as usize][x as usize] = 1;
-                    }
-                }
-                clear_lines(&mut board);
-                current_piece = Piece::new();
-            } else {
+            if is_key_pressed(KeyCode::Left) {
+                potential_piece.x -= 1;
+            }
+            if is_key_pressed(KeyCode::Right) {
+                potential_piece.x += 1;
+            }
+            if is_key_pressed(KeyCode::Up) {
+                potential_piece.rotation = (potential_piece.rotation + 1) % 4;
+            }
+
+            if !potential_piece.check_collision(&board) {
                 current_piece = potential_piece;
             }
-            last_update = get_time();
+
+            if get_time() - last_update > 0.5 {
+                let mut potential_piece = current_piece;
+                potential_piece.y += 1;
+                if potential_piece.check_collision(&board) {
+                    for (x, y) in current_piece.rotated_shape() {
+                        let x = current_piece.x + x;
+                        let y = current_piece.y + y;
+                        if y < 0 {
+                            game_over = true;
+                            break;
+                        }
+                        board[y as usize][x as usize] = 1;
+                    }
+                    score += clear_lines(&mut board) as u32 * 10;
+                    current_piece = Piece::new();
+                    if current_piece.check_collision(&board) {
+                        game_over = true;
+                    }
+                } else {
+                    current_piece = potential_piece;
+                }
+                last_update = get_time();
+            }
         }
 
         clear_background(BLACK);
@@ -159,6 +173,12 @@ async fn main() {
                 BLOCK_SIZE,
                 RED,
             );
+        }
+
+        draw_text(&format!("Score: {}", score), 10.0, 30.0, 30.0, WHITE);
+
+        if game_over {
+            draw_text("Game Over", screen_width() / 2.0 - 100.0, screen_height() / 2.0, 40.0, RED);
         }
 
         next_frame().await
