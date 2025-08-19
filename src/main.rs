@@ -161,7 +161,22 @@ async fn main() {
                     potential_piece.x += 1;
                 }
                 if is_key_pressed(KeyCode::Up) {
-                    potential_piece.rotation = (potential_piece.rotation + 1) % 4;
+                    let mut rotated_piece = potential_piece;
+                    rotated_piece.rotation = (rotated_piece.rotation + 1) % 4;
+                    
+                    let mut moved = false;
+                    for &dx in &[0, 1, -1, 2, -2] {
+                        let mut test_piece = rotated_piece;
+                        test_piece.x += dx;
+                        if !test_piece.check_collision(&board) {
+                            potential_piece = test_piece;
+                            moved = true;
+                            break;
+                        }
+                    }
+                    if !moved {
+                        // could not find a valid rotation
+                    }
                 }
 
                 if !potential_piece.check_collision(&board) {
