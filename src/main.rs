@@ -16,22 +16,41 @@ const SHAPES: [&[(i8, i8)]; 7] = [
     &[(1, 0), (1, 1), (1, 2), (0, 2)], // J
 ];
 
+const COLORS: [Color; 7] = [
+    macroquad::prelude::YELLOW,
+    macroquad::prelude::SKYBLUE,
+    macroquad::prelude::MAGENTA,
+    macroquad::prelude::GREEN,
+    macroquad::prelude::RED,
+    macroquad::prelude::ORANGE,
+    macroquad::prelude::BLUE,
+];
+
 #[derive(Clone, Copy)]
 struct Piece {
     x: i8,
     y: i8,
-    shape: &'static [(i8, i8)],
+    shape_index: usize,
     rotation: u8,
 }
 
 impl Piece {
     fn new() -> Self {
+        let shape_index = rand::gen_range(0, SHAPES.len());
         Self {
             x: (BOARD_WIDTH / 2) as i8,
             y: 0,
-            shape: SHAPES[rand::gen_range(0, SHAPES.len())],
+            shape_index,
             rotation: 0,
         }
+    }
+
+    fn shape(&self) -> &'static [(i8, i8)] {
+        SHAPES[self.shape_index]
+    }
+
+    fn color(&self) -> Color {
+        COLORS[self.shape_index]
     }
 
     fn check_collision(&self, board: &Board) -> bool {
@@ -41,7 +60,7 @@ impl Piece {
             if x < 0
                 || x >= BOARD_WIDTH as i8
                 || y >= BOARD_HEIGHT as i8
-                || (y >= 0 && board[y as usize][x as usize] == 1)
+                || (y >= 0 && board[y as usize][x as usize] != 0)
             {
                 return true;
             }
@@ -50,7 +69,7 @@ impl Piece {
     }
 
     fn rotated_shape(&self) -> Vec<(i8, i8)> {
-        self.shape
+        self.shape()
             .iter()
             .map(|&(x, y)| match self.rotation {
                 0 => (x, y),
@@ -93,13 +112,24 @@ fn clear_lines(board: &mut Board) -> u8 {
     lines_cleared
 }
 
-#[macroquad::main("Tetris")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Tetris".to_owned(),
+        window_width: (BOARD_WIDTH as f32 * BLOCK_SIZE + 200.0) as i32,
+        window_height: (BOARD_HEIGHT as f32 * BLOCK_SIZE) as i32,
+        window_resizable: false,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     let mut board: Board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
     let mut current_piece = Piece::new();
     let mut last_update = get_time();
     let mut score = 0;
     let mut game_over = false;
+    let board_x_offset = 200.0;
 
     loop {
         if !game_over {
@@ -112,6 +142,19 @@ async fn main() {
             }
             if is_key_pressed(KeyCode::Up) {
                 potential_piece.rotation = (potential_piece.rotation + 1) % 4;
+            }
+            if is_key_pressed(KeyCode::Space) {
+                let mut final_piece = current_piece;
+                loop {
+                    let mut test_piece = final_piece;
+                    test_piece.y += 1;
+                    if test_piece.check_collision(&board) {
+                        break;
+                    }
+                    final_piece = test_piece;
+                }
+                current_piece = final_piece;
+                last_update = get_time() - 1.0;
             }
 
             if !potential_piece.check_collision(&board) {
@@ -129,7 +172,10 @@ async fn main() {
                             game_over = true;
                             break;
                         }
-                        board[y as usize][x as usize] = 1;
+                        board[y as usize][x as usize] = (current_piece.shape_index + 1) as u8;
+                    }
+                    if game_over {
+                        continue;
                     }
                     score += clear_lines(&mut board) as u32 * 10;
                     current_piece = Piece::new();
@@ -147,15 +193,20 @@ async fn main() {
 
         for y in 0..BOARD_HEIGHT {
             for x in 0..BOARD_WIDTH {
+                let color = if board[y][x] == 0 {
+                    WHITE
+                } else {
+                    COLORS[board[y][x] as usize - 1]
+                };
                 draw_rectangle(
-                    x as f32 * BLOCK_SIZE,
+                    board_x_offset + x as f32 * BLOCK_SIZE,
                     y as f32 * BLOCK_SIZE,
                     BLOCK_SIZE,
                     BLOCK_SIZE,
-                    if board[y][x] == 1 { GRAY } else { WHITE },
+                    color,
                 );
                 draw_rectangle_lines(
-                    x as f32 * BLOCK_SIZE,
+                    board_x_offset + x as f32 * BLOCK_SIZE,
                     y as f32 * BLOCK_SIZE,
                     BLOCK_SIZE,
                     BLOCK_SIZE,
@@ -167,18 +218,27 @@ async fn main() {
 
         for (x, y) in current_piece.rotated_shape() {
             draw_rectangle(
-                (current_piece.x + x) as f32 * BLOCK_SIZE,
+                board_x_offset + (current_piece.x + x) as f32 * BLOCK_SIZE,
                 (current_piece.y + y) as f32 * BLOCK_SIZE,
                 BLOCK_SIZE,
                 BLOCK_SIZE,
-                RED,
+                current_piece.color(),
             );
         }
 
         draw_text(&format!("Score: {}", score), 10.0, 30.0, 30.0, WHITE);
 
         if game_over {
-            draw_text("Game Over", screen_width() / 2.0 - 100.0, screen_height() / 2.0, 40.0, RED);
+            let text = "Game Over";
+            let font_size = 40.0;
+            let text_size = measure_text(text, None, font_size as u16, 1.0);
+            draw_text(
+                text,
+                board_x_offset + (BOARD_WIDTH as f32 * BLOCK_SIZE) / 2.0 - text_size.width / 2.0,
+                screen_height() / 2.0,
+                font_size,
+                RED,
+            );
         }
 
         next_frame().await
