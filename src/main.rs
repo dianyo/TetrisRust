@@ -82,6 +82,13 @@ impl Piece {
     }
 }
 
+#[derive(PartialEq)]
+enum GameState {
+    Playing,
+    Paused,
+    GameOver,
+}
+
 fn clear_lines(board: &mut Board) -> u8 {
     let mut y = BOARD_HEIGHT - 1;
     let mut lines_cleared = 0;
@@ -128,64 +135,104 @@ async fn main() {
     let mut current_piece = Piece::new();
     let mut last_update = get_time();
     let mut score = 0;
-    let mut game_over = false;
+    let mut game_state = GameState::Playing;
     let board_x_offset = 200.0;
 
     loop {
-        if !game_over {
-            let mut potential_piece = current_piece;
-            if is_key_pressed(KeyCode::Left) {
-                potential_piece.x -= 1;
-            }
-            if is_key_pressed(KeyCode::Right) {
-                potential_piece.x += 1;
-            }
-            if is_key_pressed(KeyCode::Up) {
-                potential_piece.rotation = (potential_piece.rotation + 1) % 4;
-            }
-            if is_key_pressed(KeyCode::Space) {
-                let mut final_piece = current_piece;
-                loop {
-                    let mut test_piece = final_piece;
-                    test_piece.y += 1;
-                    if test_piece.check_collision(&board) {
-                        break;
-                    }
-                    final_piece = test_piece;
+        match game_state {
+            GameState::Playing => {
+                if is_key_pressed(KeyCode::Escape) {
+                    game_state = GameState::Paused;
                 }
-                current_piece = final_piece;
-                last_update = get_time() - 1.0;
-            }
 
-            if !potential_piece.check_collision(&board) {
-                current_piece = potential_piece;
-            }
-
-            if get_time() - last_update > 0.5 {
                 let mut potential_piece = current_piece;
-                potential_piece.y += 1;
-                if potential_piece.check_collision(&board) {
-                    for (x, y) in current_piece.rotated_shape() {
-                        let x = current_piece.x + x;
-                        let y = current_piece.y + y;
-                        if y < 0 {
-                            game_over = true;
-                            break;
-                        }
-                        board[y as usize][x as usize] = (current_piece.shape_index + 1) as u8;
-                    }
-                    if game_over {
-                        continue;
-                    }
-                    score += clear_lines(&mut board) as u32 * 10;
-                    current_piece = Piece::new();
-                    if current_piece.check_collision(&board) {
-                        game_over = true;
-                    }
-                } else {
+                if is_key_pressed(KeyCode::Left) {
+                    potential_piece.x -= 1;
+                }
+                if is_key_pressed(KeyCode::Right) {
+                    potential_piece.x += 1;
+                }
+                if is_key_pressed(KeyCode::Up) {
+                    potential_piece.rotation = (potential_piece.rotation + 1) % 4;
+                }
+
+                if !potential_piece.check_collision(&board) {
                     current_piece = potential_piece;
                 }
-                last_update = get_time();
+
+                if is_key_pressed(KeyCode::Space) {
+                    loop {
+                        let mut test_piece = current_piece;
+                        test_piece.y += 1;
+                        if test_piece.check_collision(&board) {
+                            break;
+                        }
+                        current_piece = test_piece;
+                    }
+                    last_update = get_time() - 1.0;
+                }
+
+                if get_time() - last_update > 0.5 {
+                    let mut potential_piece = current_piece;
+                    potential_piece.y += 1;
+                    if potential_piece.check_collision(&board) {
+                        for (x, y) in current_piece.rotated_shape() {
+                            let x = current_piece.x + x;
+                            let y = current_piece.y + y;
+                            if y < 0 {
+                                game_state = GameState::GameOver;
+                                break;
+                            }
+                            board[y as usize][x as usize] = (current_piece.shape_index + 1) as u8;
+                        }
+                        if let GameState::GameOver = game_state {
+                            continue;
+                        }
+                        score += clear_lines(&mut board) as u32 * 10;
+                        current_piece = Piece::new();
+                        if current_piece.check_collision(&board) {
+                            game_state = GameState::GameOver;
+                        }
+                    } else {
+                        current_piece = potential_piece;
+                    }
+                    last_update = get_time();
+                }
+            }
+            GameState::Paused => {
+                if is_key_pressed(KeyCode::Escape) {
+                    game_state = GameState::Playing;
+                }
+                if is_mouse_button_pressed(MouseButton::Left) {
+                    let (mouse_x, mouse_y) = mouse_position();
+                    // Restart button
+                    if mouse_x > 10.0 && mouse_x < 60.0 && mouse_y > 70.0 && mouse_y < 120.0 {
+                        board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
+                        current_piece = Piece::new();
+                        score = 0;
+                        game_state = GameState::Playing;
+                    }
+                    // Continue button
+                    if mouse_x > 70.0 && mouse_x < 120.0 && mouse_y > 70.0 && mouse_y < 120.0 {
+                        game_state = GameState::Playing;
+                    }
+                }
+            }
+            GameState::GameOver => {
+                if is_mouse_button_pressed(MouseButton::Left) {
+                    let (mouse_x, mouse_y) = mouse_position();
+                    let text = "Restart";
+                    let font_size = 30.0;
+                    let text_size = measure_text(text, None, font_size as u16, 1.0);
+                    let text_x = board_x_offset + (BOARD_WIDTH as f32 * BLOCK_SIZE) / 2.0 - text_size.width / 2.0;
+                    let text_y = screen_height() / 2.0 + 50.0;
+                    if mouse_x > text_x && mouse_x < text_x + text_size.width && mouse_y > text_y - text_size.height && mouse_y < text_y {
+                        board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
+                        current_piece = Piece::new();
+                        score = 0;
+                        game_state = GameState::Playing;
+                    }
+                }
             }
         }
 
@@ -216,19 +263,37 @@ async fn main() {
             }
         }
 
-        for (x, y) in current_piece.rotated_shape() {
-            draw_rectangle(
-                board_x_offset + (current_piece.x + x) as f32 * BLOCK_SIZE,
-                (current_piece.y + y) as f32 * BLOCK_SIZE,
-                BLOCK_SIZE,
-                BLOCK_SIZE,
-                current_piece.color(),
-            );
+        if game_state != GameState::GameOver {
+            for (x, y) in current_piece.rotated_shape() {
+                draw_rectangle(
+                    board_x_offset + (current_piece.x + x) as f32 * BLOCK_SIZE,
+                    (current_piece.y + y) as f32 * BLOCK_SIZE,
+                    BLOCK_SIZE,
+                    BLOCK_SIZE,
+                    current_piece.color(),
+                );
+            }
         }
 
         draw_text(&format!("Score: {}", score), 10.0, 30.0, 30.0, WHITE);
 
-        if game_over {
+        if game_state == GameState::Playing {
+            // Pause button
+            draw_rectangle_lines(10.0, 70.0, 50.0, 50.0, 5.0, WHITE);
+            draw_line(25.0, 80.0, 25.0, 110.0, 5.0, WHITE);
+            draw_line(45.0, 80.0, 45.0, 110.0, 5.0, WHITE);
+        }
+
+        if game_state == GameState::Paused {
+            // Restart button
+            draw_rectangle_lines(10.0, 70.0, 50.0, 50.0, 5.0, WHITE);
+            draw_poly_lines(35.0, 95.0, 5, 20.0, 90.0, 5.0, WHITE);
+            // Continue button
+            draw_rectangle_lines(70.0, 70.0, 50.0, 50.0, 5.0, WHITE);
+            draw_triangle_lines(Vec2::new(85.0, 80.0), Vec2::new(85.0, 110.0), Vec2::new(115.0, 95.0), 5.0, WHITE);
+        }
+
+        if game_state == GameState::GameOver {
             let text = "Game Over";
             let font_size = 40.0;
             let text_size = measure_text(text, None, font_size as u16, 1.0);
@@ -238,6 +303,16 @@ async fn main() {
                 screen_height() / 2.0,
                 font_size,
                 RED,
+            );
+            let restart_text = "Restart";
+            let restart_font_size = 30.0;
+            let restart_text_size = measure_text(restart_text, None, restart_font_size as u16, 1.0);
+            draw_text(
+                restart_text,
+                board_x_offset + (BOARD_WIDTH as f32 * BLOCK_SIZE) / 2.0 - restart_text_size.width / 2.0,
+                screen_height() / 2.0 + 50.0,
+                restart_font_size,
+                WHITE,
             );
         }
 
