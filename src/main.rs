@@ -48,6 +48,35 @@ impl Piece {
     }
 }
 
+fn clear_lines(board: &mut Board) {
+    let mut y = BOARD_HEIGHT - 1;
+    let mut _lines_cleared = 0;
+
+    while y > 0 {
+        let mut full = true;
+        for x in 0..BOARD_WIDTH {
+            if board[y][x] == 0 {
+                full = false;
+                break;
+            }
+        }
+
+        if full {
+            _lines_cleared += 1;
+            for y2 in (1..=y).rev() {
+                for x in 0..BOARD_WIDTH {
+                    board[y2][x] = board[y2 - 1][x];
+                }
+            }
+            for x in 0..BOARD_WIDTH {
+                board[0][x] = 0;
+            }
+        } else {
+            y -= 1;
+        }
+    }
+}
+
 #[macroquad::main("Tetris")]
 async fn main() {
     let mut board: Board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
@@ -78,6 +107,7 @@ async fn main() {
                         board[y as usize][x as usize] = 1;
                     }
                 }
+                clear_lines(&mut board);
                 current_piece = Piece::new();
             } else {
                 current_piece = potential_piece;
