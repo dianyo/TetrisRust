@@ -323,7 +323,7 @@ async fn main() {
                         ghost_piece.color().r,
                         ghost_piece.color().g,
                         ghost_piece.color().b,
-                        0.5,
+                        0.2,
                     ),
                 );
             }
