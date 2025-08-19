@@ -14,9 +14,15 @@ This is a classic Tetris game built from scratch in Rust using the `macroquad` g
 *   **Pause & Restart:** Pause the game at any time with **Escape** or the pause button. Restart from the pause menu or the game over screen.
 *   **Custom UI:** A clean interface with a dedicated score panel and intuitive pop-up menus.
 
+## Tested Environment
+
+*   **OS:** macOS 15.3.1
+*   **CPU:** Apple M2 Pro
+*   **Rust:** rustc 1.91.0-nightly (9eb4a2652 2025-08-18)
+
 ## Installation & Running
 
-This project requires the **nightly** Rust toolchain to run.
+This project requires a specific **nightly** Rust toolchain to run.
 
 1.  **Clone the repository:**
     ```sh
@@ -25,20 +31,16 @@ This project requires the **nightly** Rust toolchain to run.
     ```
     *(Please replace the URL with your actual repository URL.)*
 
-2.  **Install the nightly toolchain:**
-    If you don't have the nightly toolchain installed, run the following command:
+2.  **Install the correct nightly toolchain:**
+    If you don't have the exact nightly toolchain installed, run the following command:
     ```sh
-    rustup toolchain install nightly
+    rustup toolchain install nightly-2025-08-18
     ```
 
 3.  **Set the nightly toolchain for this project:**
-    You can set nightly as the default for this specific project by running:
+    You can set the correct nightly version for this specific project by running:
     ```sh
-    rustup override set nightly
-    ```
-    Alternatively, you can set it as your global default:
-    ```sh
-    rustup default nightly
+    rustup override set nightly-2025-08-18
     ```
 
 4.  **Run the game:**
