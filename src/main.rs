@@ -216,13 +216,18 @@ async fn main() {
 
                     let popup_width = 200.0;
                     let popup_height = 150.0;
-                    let popup_x = board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
+                    let popup_x =
+                        board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
                     let popup_y = ((BOARD_HEIGHT as f32 * BLOCK_SIZE) - popup_height) / 2.0;
 
                     // Restart button area
                     let restart_x = popup_x + 25.0;
                     let restart_y = popup_y + 50.0;
-                    if mouse_x > restart_x && mouse_x < restart_x + 50.0 && mouse_y > restart_y && mouse_y < restart_y + 50.0 {
+                    if mouse_x > restart_x
+                        && mouse_x < restart_x + 50.0
+                        && mouse_y > restart_y
+                        && mouse_y < restart_y + 50.0
+                    {
                         board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
                         current_piece = Piece::new();
                         score = 0;
@@ -231,7 +236,11 @@ async fn main() {
                     // Continue button area
                     let continue_x = popup_x + 125.0;
                     let continue_y = popup_y + 50.0;
-                    if mouse_x > continue_x && mouse_x < continue_x + 50.0 && mouse_y > continue_y && mouse_y < continue_y + 50.0 {
+                    if mouse_x > continue_x
+                        && mouse_x < continue_x + 50.0
+                        && mouse_y > continue_y
+                        && mouse_y < continue_y + 50.0
+                    {
                         game_state = GameState::Playing;
                     }
                 }
@@ -245,7 +254,8 @@ async fn main() {
 
                     let popup_width = 200.0;
                     let popup_height = 150.0;
-                    let popup_x = board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
+                    let popup_x =
+                        board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
                     let popup_y = ((BOARD_HEIGHT as f32 * BLOCK_SIZE) - popup_height) / 2.0;
 
                     let text_x = popup_x + (popup_width - text_size.width) / 2.0;
@@ -321,8 +331,31 @@ async fn main() {
             draw_rectangle(popup_x, popup_y, popup_width, popup_height, WHITE);
             draw_rectangle_lines(popup_x, popup_y, popup_width, popup_height, 5.0, BLACK);
 
-            // Restart button
-            draw_poly_lines(popup_x + 50.0, popup_y + 75.0, 5, 20.0, 90.0, 5.0, BLACK);
+            // Restart button - "return arrow"
+            let cx = popup_x + 50.0;
+            let cy = popup_y + 75.0;
+            let r = 15.0;
+            let thickness = 5.0;
+            let angle_start = 0.0f32.to_radians();
+            let angle_end = 270.0f32.to_radians();
+            let segments = 20;
+            for i in 0..segments {
+                let angle1 = angle_start + (angle_end - angle_start) * (i as f32 / segments as f32);
+                let angle2 = angle_start + (angle_end - angle_start) * ((i + 1) as f32 / segments as f32);
+                let x1 = cx + r * angle1.cos();
+                let y1 = cy + r * angle1.sin();
+                let x2 = cx + r * angle2.cos();
+                let y2 = cy + r * angle2.sin();
+                draw_line(x1, y1, x2, y2, thickness, BLACK);
+            }
+            let arrow_tip = Vec2::new(cx, cy - r);
+            draw_triangle_lines(
+                arrow_tip,
+                Vec2::new(arrow_tip.x + 10.0, arrow_tip.y - 10.0),
+                Vec2::new(arrow_tip.x + 10.0, arrow_tip.y + 10.0),
+                thickness,
+                BLACK,
+            );
             // Continue button
             draw_triangle_lines(
                 Vec2::new(popup_x + 135.0, popup_y + 60.0),
@@ -345,13 +378,13 @@ async fn main() {
             let text = "Game Over";
             let font_size = 40.0;
             let text_size = measure_text(text, None, font_size as u16, 1.0);
-            draw_text(
-                text,
-                popup_x + (popup_width - text_size.width) / 2.0,
-                popup_y + 40.0,
-                font_size,
-                BLACK,
-            );
+            let x = popup_x + (popup_width - text_size.width) / 2.0;
+            let y = popup_y + 40.0;
+            let offset = 1.0;
+            // Draw text with a slight offset to create a bold effect
+            draw_text(text, x, y, font_size, RED);
+            draw_text(text, x + offset, y, font_size, RED);
+
             let restart_text = "Restart";
             let restart_font_size = 30.0;
             let restart_text_size = measure_text(restart_text, None, restart_font_size as u16, 1.0);
