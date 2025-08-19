@@ -21,6 +21,7 @@ struct Piece {
     x: i8,
     y: i8,
     shape: &'static [(i8, i8)],
+    rotation: u8,
 }
 
 impl Piece {
@@ -29,22 +30,32 @@ impl Piece {
             x: (BOARD_WIDTH / 2) as i8,
             y: 0,
             shape: SHAPES[rand::gen_range(0, SHAPES.len())],
+            rotation: 0,
         }
     }
 
     fn check_collision(&self, board: &Board) -> bool {
-        for &(x, y) in self.shape {
+        for (x, y) in self.rotated_shape() {
             let x = self.x + x;
             let y = self.y + y;
-            if x < 0
-                || x >= BOARD_WIDTH as i8
-                || y >= BOARD_HEIGHT as i8
-                || (y >= 0 && board[y as usize][x as usize] == 1)
-            {
+            if x < 0 || x >= BOARD_WIDTH as i8 || y >= BOARD_HEIGHT as i8 || (y >= 0 && board[y as usize][x as usize] == 1) {
                 return true;
             }
         }
         false
+    }
+
+    fn rotated_shape(&self) -> Vec<(i8, i8)> {
+        self.shape
+            .iter()
+            .map(|&(x, y)| match self.rotation {
+                0 => (x, y),
+                1 => (y, -x),
+                2 => (-x, -y),
+                3 => (-y, x),
+                _ => unreachable!(),
+            })
+            .collect()
     }
 }
 
@@ -91,6 +102,9 @@ async fn main() {
         if is_key_pressed(KeyCode::Right) {
             potential_piece.x += 1;
         }
+        if is_key_pressed(KeyCode::Up) {
+            potential_piece.rotation = (potential_piece.rotation + 1) % 4;
+        }
 
         if !potential_piece.check_collision(&board) {
             current_piece = potential_piece;
@@ -100,7 +114,7 @@ async fn main() {
             let mut potential_piece = current_piece;
             potential_piece.y += 1;
             if potential_piece.check_collision(&board) {
-                for &(x, y) in current_piece.shape {
+                for (x, y) in current_piece.rotated_shape() {
                     let x = current_piece.x + x;
                     let y = current_piece.y + y;
                     if y >= 0 {
@@ -137,7 +151,7 @@ async fn main() {
             }
         }
 
-        for &(x, y) in current_piece.shape {
+        for (x, y) in current_piece.rotated_shape() {
             draw_rectangle(
                 (current_piece.x + x) as f32 * BLOCK_SIZE,
                 (current_piece.y + y) as f32 * BLOCK_SIZE,
