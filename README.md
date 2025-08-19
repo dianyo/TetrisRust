@@ -4,8 +4,6 @@ This is a classic Tetris game built from scratch in Rust using the `macroquad` g
 
 ![Tetris Screenshot](Tetris.png)
 
-*Note: Please add a `Tetris.png` screenshot to the root of the project for the image to display.*
-
 ## Features
 
 *   **Classic Tetris Gameplay:** Move, rotate, and drop tetrominoes to clear lines and score points.
