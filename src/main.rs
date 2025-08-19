@@ -145,6 +145,14 @@ async fn main() {
                     game_state = GameState::Paused;
                 }
 
+                if is_mouse_button_pressed(MouseButton::Left) {
+                    let (mouse_x, mouse_y) = mouse_position();
+                    // Pause button
+                    if mouse_x > 10.0 && mouse_x < 60.0 && mouse_y > 70.0 && mouse_y < 120.0 {
+                        game_state = GameState::Paused;
+                    }
+                }
+
                 let mut potential_piece = current_piece;
                 if is_key_pressed(KeyCode::Left) {
                     potential_piece.x -= 1;
@@ -205,15 +213,25 @@ async fn main() {
                 }
                 if is_mouse_button_pressed(MouseButton::Left) {
                     let (mouse_x, mouse_y) = mouse_position();
-                    // Restart button
-                    if mouse_x > 10.0 && mouse_x < 60.0 && mouse_y > 70.0 && mouse_y < 120.0 {
+
+                    let popup_width = 200.0;
+                    let popup_height = 150.0;
+                    let popup_x = board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
+                    let popup_y = ((BOARD_HEIGHT as f32 * BLOCK_SIZE) - popup_height) / 2.0;
+
+                    // Restart button area
+                    let restart_x = popup_x + 25.0;
+                    let restart_y = popup_y + 50.0;
+                    if mouse_x > restart_x && mouse_x < restart_x + 50.0 && mouse_y > restart_y && mouse_y < restart_y + 50.0 {
                         board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
                         current_piece = Piece::new();
                         score = 0;
                         game_state = GameState::Playing;
                     }
-                    // Continue button
-                    if mouse_x > 70.0 && mouse_x < 120.0 && mouse_y > 70.0 && mouse_y < 120.0 {
+                    // Continue button area
+                    let continue_x = popup_x + 125.0;
+                    let continue_y = popup_y + 50.0;
+                    if mouse_x > continue_x && mouse_x < continue_x + 50.0 && mouse_y > continue_y && mouse_y < continue_y + 50.0 {
                         game_state = GameState::Playing;
                     }
                 }
@@ -224,9 +242,19 @@ async fn main() {
                     let text = "Restart";
                     let font_size = 30.0;
                     let text_size = measure_text(text, None, font_size as u16, 1.0);
-                    let text_x = board_x_offset + (BOARD_WIDTH as f32 * BLOCK_SIZE) / 2.0 - text_size.width / 2.0;
-                    let text_y = screen_height() / 2.0 + 50.0;
-                    if mouse_x > text_x && mouse_x < text_x + text_size.width && mouse_y > text_y - text_size.height && mouse_y < text_y {
+
+                    let popup_width = 200.0;
+                    let popup_height = 150.0;
+                    let popup_x = board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
+                    let popup_y = ((BOARD_HEIGHT as f32 * BLOCK_SIZE) - popup_height) / 2.0;
+
+                    let text_x = popup_x + (popup_width - text_size.width) / 2.0;
+                    let text_y = popup_y + 100.0;
+                    if mouse_x > text_x
+                        && mouse_x < text_x + text_size.width
+                        && mouse_y > text_y - text_size.height
+                        && mouse_y < text_y
+                    {
                         board = [[0; BOARD_WIDTH]; BOARD_HEIGHT];
                         current_piece = Piece::new();
                         score = 0;
@@ -285,34 +313,54 @@ async fn main() {
         }
 
         if game_state == GameState::Paused {
+            let popup_width = 200.0;
+            let popup_height = 150.0;
+            let popup_x = board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
+            let popup_y = ((BOARD_HEIGHT as f32 * BLOCK_SIZE) - popup_height) / 2.0;
+
+            draw_rectangle(popup_x, popup_y, popup_width, popup_height, WHITE);
+            draw_rectangle_lines(popup_x, popup_y, popup_width, popup_height, 5.0, BLACK);
+
             // Restart button
-            draw_rectangle_lines(10.0, 70.0, 50.0, 50.0, 5.0, WHITE);
-            draw_poly_lines(35.0, 95.0, 5, 20.0, 90.0, 5.0, WHITE);
+            draw_poly_lines(popup_x + 50.0, popup_y + 75.0, 5, 20.0, 90.0, 5.0, BLACK);
             // Continue button
-            draw_rectangle_lines(70.0, 70.0, 50.0, 50.0, 5.0, WHITE);
-            draw_triangle_lines(Vec2::new(85.0, 80.0), Vec2::new(85.0, 110.0), Vec2::new(115.0, 95.0), 5.0, WHITE);
+            draw_triangle_lines(
+                Vec2::new(popup_x + 135.0, popup_y + 60.0),
+                Vec2::new(popup_x + 135.0, popup_y + 90.0),
+                Vec2::new(popup_x + 165.0, popup_y + 75.0),
+                5.0,
+                BLACK,
+            );
         }
 
         if game_state == GameState::GameOver {
+            let popup_width = 200.0;
+            let popup_height = 150.0;
+            let popup_x = board_x_offset + ((BOARD_WIDTH as f32 * BLOCK_SIZE) - popup_width) / 2.0;
+            let popup_y = ((BOARD_HEIGHT as f32 * BLOCK_SIZE) - popup_height) / 2.0;
+
+            draw_rectangle(popup_x, popup_y, popup_width, popup_height, WHITE);
+            draw_rectangle_lines(popup_x, popup_y, popup_width, popup_height, 5.0, BLACK);
+
             let text = "Game Over";
             let font_size = 40.0;
             let text_size = measure_text(text, None, font_size as u16, 1.0);
             draw_text(
                 text,
-                board_x_offset + (BOARD_WIDTH as f32 * BLOCK_SIZE) / 2.0 - text_size.width / 2.0,
-                screen_height() / 2.0,
+                popup_x + (popup_width - text_size.width) / 2.0,
+                popup_y + 40.0,
                 font_size,
-                RED,
+                BLACK,
             );
             let restart_text = "Restart";
             let restart_font_size = 30.0;
             let restart_text_size = measure_text(restart_text, None, restart_font_size as u16, 1.0);
             draw_text(
                 restart_text,
-                board_x_offset + (BOARD_WIDTH as f32 * BLOCK_SIZE) / 2.0 - restart_text_size.width / 2.0,
-                screen_height() / 2.0 + 50.0,
+                popup_x + (popup_width - restart_text_size.width) / 2.0,
+                popup_y + 100.0,
                 restart_font_size,
-                WHITE,
+                BLACK,
             );
         }
 
