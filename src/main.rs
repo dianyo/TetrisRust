@@ -168,6 +168,8 @@ async fn main() {
                     current_piece = potential_piece;
                 }
 
+                let drop_speed = if is_key_down(KeyCode::Down) { 0.1 } else { 0.5 };
+
                 if is_key_pressed(KeyCode::Space) {
                     loop {
                         let mut test_piece = current_piece;
@@ -180,7 +182,7 @@ async fn main() {
                     last_update = get_time() - 1.0;
                 }
 
-                if get_time() - last_update > 0.5 {
+                if get_time() - last_update > drop_speed {
                     let mut potential_piece = current_piece;
                     potential_piece.y += 1;
                     if potential_piece.check_collision(&board) {
@@ -302,6 +304,30 @@ async fn main() {
         }
 
         if game_state != GameState::GameOver {
+            let mut ghost_piece = current_piece;
+            loop {
+                let mut test_piece = ghost_piece;
+                test_piece.y += 1;
+                if test_piece.check_collision(&board) {
+                    break;
+                }
+                ghost_piece = test_piece;
+            }
+            for (x, y) in ghost_piece.rotated_shape() {
+                draw_rectangle(
+                    board_x_offset + (ghost_piece.x + x) as f32 * BLOCK_SIZE,
+                    (ghost_piece.y + y) as f32 * BLOCK_SIZE,
+                    BLOCK_SIZE,
+                    BLOCK_SIZE,
+                    Color::new(
+                        ghost_piece.color().r,
+                        ghost_piece.color().g,
+                        ghost_piece.color().b,
+                        0.5,
+                    ),
+                );
+            }
+
             for (x, y) in current_piece.rotated_shape() {
                 draw_rectangle(
                     board_x_offset + (current_piece.x + x) as f32 * BLOCK_SIZE,
@@ -341,7 +367,8 @@ async fn main() {
             let segments = 20;
             for i in 0..segments {
                 let angle1 = angle_start + (angle_end - angle_start) * (i as f32 / segments as f32);
-                let angle2 = angle_start + (angle_end - angle_start) * ((i + 1) as f32 / segments as f32);
+                let angle2 =
+                    angle_start + (angle_end - angle_start) * ((i + 1) as f32 / segments as f32);
                 let x1 = cx + r * angle1.cos();
                 let y1 = cy + r * angle1.sin();
                 let x2 = cx + r * angle2.cos();
